@@ -141,6 +141,7 @@ def group_introns(adata, by="three_prime", filter_unique_gene_per_group=True):
         adata.var["intron_group"] = adata.var.apply(
             lambda intron: intron.chromosome
             + "_"
+            # 正链5`端上游，3`端下游，所以根据3`端分组的时候，下游的碱基序列作为start
             + (str(intron.end) if intron.strand == "+" else str(intron.start))
             + "_"
             + intron.strand,
@@ -200,7 +201,7 @@ def relabel(labels):
     new_labels = np.array([mapping[l] for l in labels])
     return new_labels
 
-
+# 以伪bulk的方式，对psi值进行平滑填充
 def group_normalize(X, groups, smooth=False):
     groups = relabel(groups)
     intron_group_summation = make_intron_group_summation_cpu(groups)
@@ -215,7 +216,7 @@ def group_normalize(X, groups, smooth=False):
 def calculate_PSI(adata, smooth=False):
     return group_normalize(adata.X.toarray(), adata.var.intron_group.values, smooth=smooth)
 
-
+# 过滤每个AS特征中的细胞数目
 def filter_min_cells_per_feature(adata, min_cells_per_feature, idx_cells_to_count=slice(None)):
     print("filter_min_cells_per_feature")
     idx_features = np.where((adata.X[idx_cells_to_count] > 0).sum(axis=0).A1 >= min_cells_per_feature)[0]
@@ -223,7 +224,7 @@ def filter_min_cells_per_feature(adata, min_cells_per_feature, idx_cells_to_coun
     adata = filter_singletons(adata)
     return adata
 
-
+# 过滤每个内含子组中的细胞数目
 def filter_min_cells_per_intron_group(adata, min_cells_per_intron_group, idx_cells_to_count=slice(None)):
     print("filter_min_cells_per_intron_group")
     intron_groups = relabel(adata.var.intron_group.values)
